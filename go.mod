@@ -1,4 +1,4 @@
-module github.com/spburtsev/yacb
+module github.com/spburtsev/ccbs
 
 go 1.23.6
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/spburtsev/yacb/cmd"
+	"github.com/spburtsev/ccbs/cmd"
 )
 
 func main() {
