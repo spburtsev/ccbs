@@ -7,9 +7,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "yacb",
-	Short: "yacb is a cli tool for bootstrapping cmake projects",
-	Long:  "yacb is a cli tool for bootstrapping cmake projects",
+	Use:   "ccbs",
+	Short: "ccbs is a cli tool for bootstrapping cmake projects",
+	Long:  "ccbs is a cli tool for bootstrapping cmake projects",
 	Run: func(cmd *cobra.Command, args []string) {
 
 	},
@@ -17,7 +17,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Oops. An error while executing yacb '%s'\n", err)
+		fmt.Fprintf(os.Stderr, "Oops. An error while executing ccbs '%s'\n", err)
 		os.Exit(1)
 	}
 }

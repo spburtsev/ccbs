@@ -12,7 +12,7 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := ExecInit()
 		if err != nil {
-			fmt.Printf("Could not initialize a project in current directory:\n%s\n", args[0], err)
+			fmt.Printf("Could not initialize a project in current directory:\n%s\n", err)
 		}
 	},
 }
