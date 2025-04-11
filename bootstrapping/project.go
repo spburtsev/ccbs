@@ -43,6 +43,23 @@ func ExecNew(root string) error {
 	return nil
 }
 
+const gitignoreTemplate = `# ccbs
+/out
+CMakeCache.txt
+/CMakeFiles
+Makefile
+cmake_install.cmake
+
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+/x64
+/*.dir/Debug
+.vs
+*.slnLaunch.user
+`
+
 func bootstrapProject(root string) error {
 	conf, err := config.ReadGlobalConfig()
 	if err != nil {
@@ -52,6 +69,16 @@ func bootstrapProject(root string) error {
 		if !isGitAvailable() {
 			fmt.Printf("Git is not available. Skipping Git initialization.\n")
 		} else if err := initGitRepo(root); err != nil {
+			return err
+		}
+		gitignorePath := path.Join(root, ".gitignore")
+		gitignoreFile, err := os.OpenFile(gitignorePath, os.O_RDWR|os.O_CREATE, 0644)
+		if err != nil {
+			return err
+		}
+		defer gitignoreFile.Close()
+		_, err = gitignoreFile.Write([]byte(gitignoreTemplate))
+		if err != nil {
 			return err
 		}
 	}
@@ -78,7 +105,7 @@ func isGitAvailable() bool {
 func ensureDirCreated(path string) error {
 	_, err := os.Stat(path)
 	if os.IsNotExist(err) {
-		return os.Mkdir(path, 0644)
+		return os.Mkdir(path, 0755)
 	}
 	return err
 }
