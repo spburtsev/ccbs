@@ -5,16 +5,27 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 )
 
-const AppDir = ".ccbs"
-const GlobalConfigFileName = "global_config.json"
+const appDir = ".ccbs"
+const globalConfigFileName = "global_config.json"
 
 type GlobalConfig struct {
-	UseGit      bool   `json:"use_git"`
-	DefaultLang string `json:"default_lang"`
-	CppStandard string `json:"cpp_std"`
-	CStandard   string `json:"c_std"`
+	UseGit        bool   `json:"use_git"`
+	DefaultLang   string `json:"default_lang"`
+	CppStandard   string `json:"cpp_std"`
+	CStandard     string `json:"c_std"`
+	AutoExecCmake bool   `json:"auto_exec_cmake"`
+}
+
+func GlobalConfigFromFile(f *os.File) (*GlobalConfig, error) {
+	var conf GlobalConfig
+	err := json.NewDecoder(f).Decode(&conf)
+	if err != nil {
+		return nil, err
+	}
+	return &conf, nil
 }
 
 func (cfg *GlobalConfig) Validate() error {
@@ -24,63 +35,80 @@ func (cfg *GlobalConfig) Validate() error {
 	return nil
 }
 
-func GetGlobalConfig() GlobalConfig {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("error: '%s'. Unable to determine user home dir", err)
-		return DefaultGlobalConfig
-	}
-	confPath := path.Join(homeDir, AppDir, GlobalConfigFileName)
-	confDir := path.Join(homeDir, AppDir)
-	if _, err = os.Stat(confDir); !os.IsNotExist(err) {
-		err = os.MkdirAll(confDir, 0644)
-		if err != nil {
-			fmt.Printf("error: '%s'. Unable to create config dir with path '%s'.", err, confDir)
-			return DefaultGlobalConfig
-		}
-	}
-	_, err = os.Stat(confPath)
-	if os.IsNotExist(err) {
-		f, err := os.Create(confPath)
-		if err != nil {
-			fmt.Printf("error: '%s'. Global config file was not created", err)
-			return DefaultGlobalConfig
-		}
-		defer f.Close()
-		jsonData, err := json.MarshalIndent(DefaultGlobalConfig, "", "  ")
-		if err != nil {
-			fmt.Printf("error: '%s'. Global config file was not created", err)
-			return DefaultGlobalConfig
-		}
-		_, err = f.Write(jsonData)
-		if err != nil {
-			fmt.Printf("error: '%s'. Global config was not written", err)
-			return DefaultGlobalConfig
-		}
-		return DefaultGlobalConfig
-	}
-	f, err := os.Open(confPath)
-	if err != nil {
-		fmt.Printf("error: '%s'. Unable to open global config file", err)
-		return DefaultGlobalConfig
-	}
-	defer f.Close()
-	var globalConfig GlobalConfig
-	err = json.NewDecoder(f).Decode(&globalConfig)
-	if err != nil {
-		fmt.Printf("error: '%s'. Unable to decode global config file", err)
-		return DefaultGlobalConfig
-	}
-	if err = globalConfig.Validate(); err != nil {
-		fmt.Printf("error: '%s'. Global config file is invalid", err)
-		return DefaultGlobalConfig
-	}
-	return globalConfig
+func (cfg *GlobalConfig) Serialize() ([]byte, error) {
+	return json.MarshalIndent(cfg, "", "  ")
 }
 
 var DefaultGlobalConfig = GlobalConfig{
-	UseGit:      true,
-	DefaultLang: "cpp",
-	CppStandard: "17",
-	CStandard:   "99",
+	UseGit:        true,
+	DefaultLang:   "cpp",
+	CppStandard:   "17",
+	CStandard:     "99",
+	AutoExecCmake: true,
+}
+
+func ReadGlobalConfig() (*GlobalConfig, error) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	confPath := path.Join(homeDir, appDir, globalConfigFileName)
+	configFile, err := os.Open(confPath)
+	if os.IsNotExist(err) {
+		return createGlobalConfig(confPath)
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer configFile.Close()
+	return GlobalConfigFromFile(configFile)
+}
+
+func ResetGlobalConfig() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	confPath := path.Join(homeDir, appDir, globalConfigFileName)
+	_, err = os.Stat(confPath)
+	if os.IsNotExist(err) {
+		_, err = createGlobalConfig(confPath)
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	newContent, err := DefaultGlobalConfig.Serialize()
+	if err != nil {
+		return err
+	}
+	oldConfig, err := os.OpenFile(confPath, os.O_WRONLY, 0755)
+	if err != nil {
+		return err
+	}
+	defer oldConfig.Close()
+	_, err = oldConfig.Write(newContent)
+	return err
+}
+
+func createGlobalConfig(confPath string) (*GlobalConfig, error) {
+	confDir := filepath.Dir(confPath)
+	err := os.MkdirAll(confDir, 0755)
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.Create(confPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	jsonData, err := DefaultGlobalConfig.Serialize()
+	if err != nil {
+		return nil, err
+	}
+	_, err = f.Write(jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return &DefaultGlobalConfig, nil
 }

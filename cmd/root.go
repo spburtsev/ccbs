@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
+	"log"
 	"os"
+
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -11,7 +13,10 @@ var rootCmd = &cobra.Command{
 	Short: "ccbs is a cli tool for bootstrapping cmake projects",
 	Long:  "ccbs is a cli tool for bootstrapping cmake projects",
 	Run: func(cmd *cobra.Command, args []string) {
-
+		err := cmd.Help()
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 

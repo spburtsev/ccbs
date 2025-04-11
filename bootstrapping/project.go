@@ -1,4 +1,4 @@
-package cmd
+package bootstrapping
 
 import (
 	"fmt"
@@ -20,6 +20,10 @@ func ExecInit() error {
 
 func ExecNew(root string) error {
 	if path.IsAbs(root) {
+		err := ensureDirCreated(root)
+		if err != nil {
+			return err
+		}
 		bootstrapProject(root)
 		return nil
 	}
@@ -31,20 +35,28 @@ func ExecNew(root string) error {
 	if _, err = os.Stat(root); !os.IsNotExist(err) {
 		return fmt.Errorf("destination '%s' already exists", root)
 	}
+	err = ensureDirCreated(root)
+	if err != nil {
+		return err
+	}
 	bootstrapProject(root)
 	return nil
 }
 
-func bootstrapProject(root string) {
-	conf := config.GetGlobalConfig()
+func bootstrapProject(root string) error {
+	conf, err := config.ReadGlobalConfig()
+	if err != nil {
+		return err
+	}
 	if conf.UseGit {
 		if !isGitAvailable() {
-			fmt.Println("Git is not available. Skipping Git initialization.")
+			fmt.Printf("Git is not available. Skipping Git initialization.\n")
 		} else if err := initGitRepo(root); err != nil {
-			fmt.Println("Error initializing Git repository:", err)
+			return err
 		}
 	}
 	fmt.Printf("Project created in '%s'!\n", root)
+	return nil
 }
 
 func initGitRepo(root string) error {
@@ -52,13 +64,21 @@ func initGitRepo(root string) error {
 	cmd.Dir = root
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("error initializing Git repository in %s: %v\nOutput: %s", root, err, string(output))
+		return fmt.Errorf("error initializing a git repository in %s: %v\nOutput: %s", root, err, string(output))
 	}
-	fmt.Printf("Successfully initialized Git repository in %s\nOutput: %s", root, string(output))
+	fmt.Printf("Git repository initialized in %s\n", root)
 	return nil
 }
 
 func isGitAvailable() bool {
 	_, err := exec.LookPath("git")
 	return err == nil
+}
+
+func ensureDirCreated(path string) error {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return os.Mkdir(path, 0644)
+	}
+	return err
 }
