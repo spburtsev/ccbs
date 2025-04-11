@@ -43,7 +43,8 @@ func ExecNew(root string) error {
 	return nil
 }
 
-const gitignoreTemplate = `# ccbs
+const gitignoreTemplate = `
+# ccbs
 /out
 CMakeCache.txt
 /CMakeFiles
@@ -72,7 +73,7 @@ func bootstrapProject(root string) error {
 			return err
 		}
 		gitignorePath := path.Join(root, ".gitignore")
-		gitignoreFile, err := os.OpenFile(gitignorePath, os.O_RDWR|os.O_CREATE, 0644)
+		gitignoreFile, err := os.OpenFile(gitignorePath, os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			return err
 		}
@@ -80,6 +81,22 @@ func bootstrapProject(root string) error {
 		_, err = gitignoreFile.Write([]byte(gitignoreTemplate))
 		if err != nil {
 			return err
+		}
+	}
+	err = createCMakeLists(root, conf)
+	if err != nil {
+		return fmt.Errorf("error creating CMakeLists: %w", err)
+	}
+	err = createMainFile(root)
+	if err != nil {
+		return fmt.Errorf("error creating main.cpp: %w", err)
+	}
+	if conf.AutoExecCmake {
+		cmd := exec.Command("cmake", ".")
+		cmd.Dir = root
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("error executing cmake in %s: %v\nOutput: %s", root, err, string(output))
 		}
 	}
 	fmt.Printf("Project created in '%s'!\n", root)

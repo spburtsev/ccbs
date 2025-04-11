@@ -13,6 +13,7 @@ const globalConfigFileName = "global_config.json"
 
 type GlobalConfig struct {
 	UseGit        bool   `json:"use_git"`
+	CmakeVersion  string `json:"cmake_version"`
 	DefaultLang   string `json:"default_lang"`
 	CppStandard   string `json:"cpp_std"`
 	CStandard     string `json:"c_std"`
@@ -41,6 +42,7 @@ func (cfg *GlobalConfig) Serialize() ([]byte, error) {
 
 var DefaultGlobalConfig = GlobalConfig{
 	UseGit:        true,
+	CmakeVersion:  "3.10",
 	DefaultLang:   "cpp",
 	CppStandard:   "17",
 	CStandard:     "99",
